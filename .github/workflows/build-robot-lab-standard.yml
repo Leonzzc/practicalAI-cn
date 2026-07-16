@@ -1,0 +1,47 @@
+name: Build robot laboratory standard DOCX
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'artifacts/robot_lab_standard/**'
+      - '.github/workflows/build-robot-lab-standard.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-docx:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install document dependencies
+        run: pip install python-docx
+
+      - name: Generate Word document
+        run: python artifacts/robot_lab_standard/build_standard.py
+
+      - name: Validate DOCX package
+        run: python -m zipfile -t "artifacts/robot_lab_standard/公路工程智慧试验室机器人自动化作业技术规程_完整初稿.docx"
+
+      - name: Commit generated Word document
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "artifacts/robot_lab_standard/公路工程智慧试验室机器人自动化作业技术规程_完整初稿.docx"
+          if git diff --cached --quiet; then
+            echo "No document changes to commit."
+          else
+            git commit -m "Generate robot laboratory standard DOCX"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
